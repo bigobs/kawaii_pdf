@@ -14,6 +14,7 @@
 | Dart SDK | >=3.11.0 <4.0.0 | Language | |
 | flutter/material | SDK | Direct | UI core (Material Design 3) |
 | syncfusion_flutter_pdf | ^35.1.43 | Direct | PDF engine (free community license) |
+| syncfusion_flutter_pdfviewer | ^35.1.43 | Direct | PDF viewer (free community license) |
 | file_picker | ^13.4.1 | Direct | File selection |
 | share_plus | ^13.3.1 | Direct | Share/save PDFs |
 | path_provider | ^2.1.5 | Direct | File system paths |
@@ -135,6 +136,16 @@ MaterialApp (KawaiiPdfApp)
 
 ## Features
 
+### 7. PDF Reader (`PdfReaderScreen`) — NEW
+- Full-screen PDF viewer with `syncfusion_flutter_pdfviewer`
+- File picker integration (`FilePicker.pickFiles`)
+- Double-tap zoom, text selection, scroll indicators
+- Pagination dialog, scroll head
+- Fullscreen mode (hides AppBar, black background)
+- FAB-based access from HomeScreen (📖 `menu_book_rounded` icon)
+- Error handling with retry button
+- Supports opening from external file path
+
 ### 1. Home Screen (`HomeScreen`)
 - Gradient AppBar with emoji decoration
 - 2-column GridView with 6 kawaii-styled tool cards
@@ -215,6 +226,7 @@ MaterialApp (KawaiiPdfApp)
 6. **URL import**: Uses `http` package; strips HTML via regex; UTF-8 decoding
 
 ## Recent Changes
+- 2026-11-25: Added PDF Reader feature (full-screen viewer, zoom, fullscreen mode) via FAB
 - 2026-11-24: Project initialized (Flutter counter app)
 - 2026-11-24: Memory bank v1 created
 - 2026-11-25: **Major update** — Full project migration:

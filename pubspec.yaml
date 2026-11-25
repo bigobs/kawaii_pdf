@@ -37,6 +37,7 @@ dependencies:
 
   # PDF manipulation (free community license for individuals)
   syncfusion_flutter_pdf: ^35.1.43
+  syncfusion_flutter_pdfviewer: ^35.1.43
 
   # File picking
   file_picker: ^13.4.1

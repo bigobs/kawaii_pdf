@@ -6,6 +6,7 @@ import 'merge_pdf_screen.dart';
 import 'split_pdf_screen.dart';
 import 'unlock_pdf_screen.dart';
 import 'edit_pdf_screen.dart';
+import 'pdf_reader_screen.dart';
 
 /// Pantalla principal con el menu de herramientas PDF 🌸.
 class HomeScreen extends StatelessWidget {
@@ -14,6 +15,15 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      floatingActionButton: FloatingActionButton(
+        heroTag: 'pdf_reader',
+        backgroundColor: AppTheme.pink500,
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const PdfReaderScreen()),
+        ),
+        child: const Icon(Icons.menu_book_rounded, color: Colors.white, size: 28),
+      ),
       appBar: AppBar(
         title: const Row(
           mainAxisSize: MainAxisSize.min,
