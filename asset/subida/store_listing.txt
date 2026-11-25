@@ -8,9 +8,11 @@ kawaii pdf
 
 ## Descripción completa (máx 4000 caracteres)
 
+📖 **Leer PDF** — Visualiza tus documentos a pantalla completa con zoom, selección de texto y modo inmersivo.
+
 🌸 **kawaii pdf** es tu compañera perfecta para trabajar con documentos PDF de forma fácil, rápida y con un estilo adorable.
 
-✨ **6 herramientas en una sola app:**
+✨ **7 herramientas en una sola app:**
 
 📝 **Crear PDF** — Crea documentos desde cero con formato personalizable (fuente, tamaño, negrita, cursiva). Importa contenido desde URLs o archivos de texto.
 
