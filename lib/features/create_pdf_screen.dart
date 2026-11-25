@@ -126,9 +126,22 @@ class _CreatePdfScreenState extends State<CreatePdfScreen> {
     setState(() { _importingFile = true; _error = null; });
     try {
       final f = await FilePicker.pickFile(
-        type: FileType.custom, allowedExtensions: ['txt', 'csv', 'md']);
+        type: FileType.custom,
+        allowedExtensions: ['txt', 'csv', 'md', 'docx', 'xlsx'],
+      );
       if (f != null && f.path != null) {
-        final content = await File(f.path!).readAsString();
+        final file = File(f.path!);
+        final ext = f.path!.split('.').last.toLowerCase();
+        String content;
+
+        if (ext == 'docx') {
+          content = await _pdfService.extractTextFromDocx(file);
+        } else if (ext == 'xlsx') {
+          content = await _pdfService.extractTextFromXlsx(file);
+        } else {
+          content = await file.readAsString();
+        }
+
         final name = f.path!.split('/').last;
         setState(() {
           _contentController.text = content;
@@ -310,7 +323,7 @@ class _CreatePdfScreenState extends State<CreatePdfScreen> {
                     ? const SizedBox(width: 14, height: 14,
                         child: CircularProgressIndicator(strokeWidth: 2))
                     : const Icon(Icons.folder_open_rounded, size: 18),
-                label: Text(_importingFile ? 'Cargando...' : 'Importar archivo (.txt)'),
+                label: Text(_importingFile ? 'Cargando...' : 'Importar archivo (.txt, .docx, .xlsx)'),
               )),
             ],
             if (_error != null)

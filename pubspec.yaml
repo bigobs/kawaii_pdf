@@ -51,6 +51,10 @@ dependencies:
   # HTTP for URL import
   http: ^1.2.1
 
+  # ZIP + XML for Office file import (DOCX, XLSX)
+  archive: ^4.0.2
+  xml: ^7.0.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

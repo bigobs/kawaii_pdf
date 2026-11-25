@@ -1,8 +1,11 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' show Rect, Offset;
 
+import 'package:archive/archive.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
+import 'package:xml/xml.dart';
 
 /// Servicio central para operaciones de manipulacion de PDFs.
 class PdfService {
@@ -395,6 +398,108 @@ class PdfService {
       resultBytes,
       'edited_${DateTime.now().millisecondsSinceEpoch}.pdf',
     );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Import Office (DOCX, XLSX)
+  // ---------------------------------------------------------------------------
+
+  /// Extrae texto de un archivo .docx.
+  Future<String> extractTextFromDocx(File file) async {
+    final bytes = await file.readAsBytes();
+    final archive = ZipDecoder().decodeBytes(bytes);
+
+    ArchiveFile? docXml;
+    for (final f in archive.files) {
+      if (f.name == 'word/document.xml') {
+        docXml = f;
+        break;
+      }
+    }
+    if (docXml == null) throw Exception('No se encontró word/document.xml');
+
+    final xmlStr = utf8.decode(docXml.content as List<int>);
+    final doc = XmlDocument.parse(xmlStr);
+    final texts = <String>[];
+    for (final e in doc.descendants.whereType<XmlElement>()) {
+      if (e.name.local == 't' &&
+          (e.name.namespaceUri?.contains('wordml') ?? false)) {
+        texts.add(e.innerText);
+      }
+    }
+    return texts.join('');
+  }
+
+  /// Extrae texto de un archivo .xlsx.
+  Future<String> extractTextFromXlsx(File file) async {
+    final bytes = await file.readAsBytes();
+    final archive = ZipDecoder().decodeBytes(bytes);
+
+    // 1) Shared strings
+    final sharedStrings = <String>[];
+    ArchiveFile? sharedXml;
+    for (final f in archive.files) {
+      if (f.name == 'xl/sharedStrings.xml') {
+        sharedXml = f;
+        break;
+      }
+    }
+    if (sharedXml != null) {
+      final ssDoc = XmlDocument.parse(
+        utf8.decode(sharedXml.content as List<int>),
+      );
+      for (final si in ssDoc.descendants.whereType<XmlElement>()) {
+        if (si.name.local == 'si') {
+          final t = si.descendants
+              .whereType<XmlElement>()
+              .where((e) => e.name.local == 't')
+              .map((e) => e.innerText)
+              .join('');
+          sharedStrings.add(t);
+        }
+      }
+    }
+
+    // 2) Sheet cells
+    final buffer = StringBuffer();
+    for (final f in archive.files) {
+      if (!f.name.startsWith('xl/worksheets/sheet') ||
+          !f.name.endsWith('.xml')) {
+        continue;
+      }
+
+      final sheetDoc = XmlDocument.parse(
+        utf8.decode(f.content as List<int>),
+      );
+      final rows = sheetDoc.descendants.whereType<XmlElement>().where((e) => e.name.local == 'row');
+      for (final row in rows) {
+        final cells = row.children.whereType<XmlElement>();
+        final rowTexts = <String>[];
+        for (final cell in cells) {
+          final v = cell.descendants
+              .whereType<XmlElement>()
+              .where((e) => e.name.local == 'v')
+              .map((e) => e.innerText)
+              .firstOrNull;
+          final t = cell.getAttribute('t');
+          if (v != null) {
+            if (t == 's') {
+              final idx = int.tryParse(v);
+              if (idx != null && idx < sharedStrings.length) {
+                rowTexts.add(sharedStrings[idx]);
+              } else {
+                rowTexts.add(v);
+              }
+            } else {
+              rowTexts.add(v);
+            }
+          }
+        }
+        if (rowTexts.isNotEmpty) buffer.writeln(rowTexts.join('\t'));
+      }
+    }
+
+    return buffer.toString().trimRight();
   }
 
   // ---------------------------------------------------------------------------
