@@ -1,0 +1,37 @@
+# Google Play Store Listing — kawaii pdf 🌸
+
+## Título corto (máx 30 caracteres)
+kawaii pdf
+
+## Descripción breve (máx 80 caracteres)
+🌸 Herramientas PDF con estilo kawaii: crear, unir, dividir, proteger y más.
+
+## Descripción completa (máx 4000 caracteres)
+
+🌸 **kawaii pdf** es tu compañera perfecta para trabajar con documentos PDF de forma fácil, rápida y con un estilo adorable.
+
+✨ **6 herramientas en una sola app:**
+
+📝 **Crear PDF** — Crea documentos desde cero con formato personalizable (fuente, tamaño, negrita, cursiva). Importa contenido desde URLs o archivos de texto.
+
+🔗 **Unir PDFs** — Combina múltiples archivos PDF en uno solo. Organiza el orden y fusiona con un solo toque.
+
+✂️ **Dividir PDF** — Extrae páginas de tus PDFs. Divide todas las páginas, un rango específico o desde una página en adelante.
+
+🔓 **Desbloquear PDF** — ¿Olvidaste la contraseña? Desbloquea archivos protegidos ingresando la clave. Detecta automáticamente si el PDF está encriptado.
+
+🔒 **Proteger PDF** — Añade contraseña a tus documentos para mantenerlos seguros.
+
+🎨 **Marca de agua** — Agrega marcas de agua personalizables: texto, opacidad, tamaño, fuente y ángulo.
+
+✏️ **Modificar texto** — Edita el contenido de tus PDFs. Extrae el texto automáticamente y aplica los cambios.
+
+💖 **Estilo kawaii** — Diseño adorable con colores pastel, sombras suaves y una interfaz intuitiva que hace que trabajar con PDFs sea divertido.
+
+📱 **Multiplataforma** — Disponible para Android, iOS, Web, Windows, macOS y Linux.
+
+🚫 **Sin anuncios, sin registro** — 100% gratuita y sin distracciones.
+
+---
+
+**Desarrollado con ❤️ por bigobs**
