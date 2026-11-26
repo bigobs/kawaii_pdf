@@ -6,6 +6,9 @@ import 'merge_pdf_screen.dart';
 import 'split_pdf_screen.dart';
 import 'unlock_pdf_screen.dart';
 import 'edit_pdf_screen.dart';
+import 'convert_pdf_screen.dart';
+import 'scan_pdf_screen.dart';
+import 'files_screen.dart';
 import 'pdf_reader_screen.dart';
 
 /// Pantalla principal con el menu de herramientas PDF 🌸.
@@ -140,6 +143,38 @@ class HomeScreen extends StatelessWidget {
                               builder: (_) => const EditPdfScreen(
                                   mode: EditMode.text))),
                     ),
+                    _KawaiiToolCard(
+                      icon: Icons.swap_horiz_rounded,
+                      label: 'Convertir PDF',
+                      color: AppTheme.mint,
+                      description: 'A Office/TXT',
+                      iconIsDark: true,
+                      onTap: () => Navigator.push(context,
+                          MaterialPageRoute(
+                              builder: (_) => const ConvertPdfScreen())),
+                    ),
+                    _KawaiiToolCard(
+                      icon: Icons.document_scanner_rounded,
+                      label: 'Escanear PDF',
+                      color: AppTheme.bubbleCoral,
+                      description: 'Camara a PDF',
+                      bubbleBg: AppTheme.bubbleCoral,
+                      bubbleGlow: AppTheme.bubbleCoralDark,
+                      onTap: () => Navigator.push(context,
+                          MaterialPageRoute(
+                              builder: (_) => const ScanPdfScreen())),
+                    ),
+                    _KawaiiToolCard(
+                      icon: Icons.folder_rounded,
+                      label: 'Mis Archivos',
+                      color: AppTheme.bubbleBlue,
+                      description: 'Gestionar docs',
+                      bubbleBg: AppTheme.bubbleBlue,
+                      bubbleGlow: AppTheme.bubbleBlueDark,
+                      onTap: () => Navigator.push(context,
+                          MaterialPageRoute(
+                              builder: (_) => const FilesScreen())),
+                    ),
                   ],
                 ),
               ),
@@ -152,7 +187,7 @@ class HomeScreen extends StatelessWidget {
 }
 
 
-/// Card kawaii individual con icono, label y descripcion.
+/// Card kawaii individual con icono, label y descripcion (V2 bubble style).
 class _KawaiiToolCard extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -160,6 +195,8 @@ class _KawaiiToolCard extends StatelessWidget {
   final String description;
   final VoidCallback onTap;
   final bool iconIsDark;
+  final Color? bubbleBg;
+  final Color? bubbleGlow;
 
   const _KawaiiToolCard({
     required this.icon,
@@ -168,23 +205,27 @@ class _KawaiiToolCard extends StatelessWidget {
     required this.description,
     required this.onTap,
     this.iconIsDark = false,
+    this.bubbleBg,
+    this.bubbleGlow,
   });
 
   @override
   Widget build(BuildContext context) {
+    final bg = bubbleBg ?? color.withValues(alpha: 0.12);
+    final glow = bubbleGlow ?? color;
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
-        boxShadow: AppTheme.kawaiiShadow,
+        boxShadow: AppTheme.softShadow,
       ),
       child: Material(
-        color: Colors.white,
+        color: AppTheme.white,
         borderRadius: BorderRadius.circular(24),
         child: InkWell(
           borderRadius: BorderRadius.circular(24),
           onTap: onTap,
-          splashColor: color.withValues(alpha: 0.12),
-          highlightColor: color.withValues(alpha: 0.06),
+          splashColor: color.withValues(alpha: 0.1),
+          highlightColor: color.withValues(alpha: 0.04),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -194,26 +235,13 @@ class _KawaiiToolCard extends StatelessWidget {
                   width: 60,
                   height: 60,
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        color.withValues(alpha: 0.15),
-                        color.withValues(alpha: 0.08),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: color.withValues(alpha: 0.15),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
+                    shape: BoxShape.circle,
+                    color: bg,
+                    boxShadow: AppTheme.bubbleGlow(glow),
                   ),
                   child: Icon(
                     icon,
-                    color: iconIsDark ? AppTheme.pink700 : color,
+                    color: iconIsDark ? AppTheme.pink700 : glow,
                     size: 28,
                   ),
                 ),

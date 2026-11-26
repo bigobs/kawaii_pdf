@@ -4,7 +4,7 @@
 - **Name**: kawaii_pdf
 - **Type**: Flutter application (multi-platform) - PDF Manipulation App
 - **Description**: kawaii pdf — Herramientas PDF con estilo kawaii 🌸
-- **Version**: 1.0.0+1
+- **Version**: 1.1.1+4
 - **Publish**: Private (`publish_to: 'none'`)
 
 ## Tech Stack
@@ -19,6 +19,9 @@
 | share_plus | ^13.3.1 | Direct | Share/save PDFs |
 | path_provider | ^2.1.5 | Direct | File system paths |
 | http | ^1.2.1 | Direct | HTTP requests (URL import) |
+| image_picker | ^1.1.2 | Direct | Camera/image for scanning |
+| archive | ^4.0.2 | Direct | ZIP for Office import |
+| xml | ^7.0.1 | Direct | XML parsing for Office |
 | cupertino_icons | ^1.0.8 | Direct | Icons |
 | flutter_lints | ^6.0.0 | Dev | Linting |
 | flutter_test | SDK | Dev | Testing |
@@ -30,15 +33,20 @@ Feature-First organization (fully implemented):
 lib/
 ├── main.dart                          # App entry point (KawaiiPdfApp)
 ├── core/
-│   ├── pdf_service.dart               # Core PDF operations (~420 lines)
-│   └── theme.dart                     # Kawaii theme (~188 lines)
+│   ├── pdf_service.dart               # Core PDF operations (754 lines)
+│   ├── office_templates.dart          # Office XML templates (200 lines)
+│   └── theme.dart                     # Kawaii V2 theme (221 lines)
 └── features/
-    ├── home_screen.dart               # Main menu with 6 tool cards
-    ├── create_pdf_screen.dart         # Create PDF + URL/file import + font options
+    ├── home_screen.dart               # Main menu with 10 tool cards (V2 bubbles)
+    ├── create_pdf_screen.dart         # Create PDF + URL/file/PPTX import + font options
     ├── merge_pdf_screen.dart          # Merge multiple PDFs (pick, reorder, merge)
     ├── split_pdf_screen.dart          # Split PDF (all pages, range, from page)
     ├── unlock_pdf_screen.dart         # Remove password from encrypted PDF
-    └── edit_pdf_screen.dart           # 3 modes: watermark, protect, modify text
+    ├── edit_pdf_screen.dart           # 3 modes: watermark, protect, modify text
+    ├── convert_pdf_screen.dart        # Convert PDF to Word/Excel/PowerPoint/TXT
+    ├── scan_pdf_screen.dart           # NEW: Scan document with camera → PDF
+    ├── files_screen.dart              # NEW: File manager (filter, sort, share, delete)
+    └── pdf_reader_screen.dart         # Full-screen PDF viewer
 ```
 
 ## Key Implementation Details
@@ -51,20 +59,26 @@ lib/
 - **Text extraction**: `PdfTextExtractor.extractText()` / `extractTextLines()`
 - **Text modification**: Whitens out original text with white rectangles, draws new text on first page
 - **Create**: configurable font family, size, bold, italic
+- **Office Import**: `extractTextFromDocx()`, `extractTextFromXlsx()`, `extractTextFromPptx()` — parsea XML interno y extrae texto plano
+- **Office Export**: `exportPdfToDocx()`, `exportPdfToXlsx()`, `exportPdfToPptx()`, `exportPdfToTxt()` — genera ZIP Office Open XML mínimo
+- **Scan**: `createPdfFromImage()` — convierte imagen (cámara/galería) a PDF con auto-escalado
+- **File Manager**: `getAppDirectory()`, `listAppFiles()`, `deleteAppFile()` — gestión unificada en `kawaii_pdf/`
 
 ### UI Framework: flutter/material (Material 3)
 - Uses standard `import 'package:flutter/material.dart'`
 - `useMaterial3: true` enabled
 - Custom `AppTheme` class with full kawaii color palette
 
-### Kawaii Theme System (`core/theme.dart`)
-- **Neutrals**: cream (#FFF9F7), blush (#FFEFF3)
+### Kawaii Theme System V2 (`core/theme.dart`)
+- **Neutrals**: cream (#FDF9EE - warmer), blush (#FFEFF3), white (#FFFFFF - floating cards)
 - **Pink scale**: pink50 → pink700
-- **Accents**: lavender, peach, coral (#FF9A8B), mint (#C8F0E0)
+- **Bubble containers (V2)**: bubblePink, bubbleBlue, bubbleYellow, bubbleCoral, bubbleLavender, bubbleMint + dark variants
+- **Accents**: lavender, peach, coral, mint
 - **Text**: textPrimary (#4A2C3A), textSecondary (#8A6B78), textMuted (#B8A0A9)
 - **Gradients**: gradHero, gradButton, gradCard, gradDreamy
-- **Shadows**: kawaiiShadow (blur 16), kawaiiShadowLight (blur 10)
-- **Component theming**: AppBar (pink bg), Cards (white, 24px radius), Buttons (pill-shaped), Inputs (white, pink border, 16px radius)
+- **Shadows V2**: kawaiiShadow (blur 24), kawaiiShadowLight (blur 12), bubbleGlow(color) for icon glow, softShadow for cards
+- **Component theming**: AppBar (pink bg), Cards (white, 24px radius, soft shadow), Buttons (pill-shaped), Inputs (white, pink border, 16px radius)
+- **V2 Icon Bubbles**: Iconos van dentro de círculos con fondo pastel + glow shadow del mismo color
 
 ### File Picker API v13
 - `FilePicker.pickFile()` (single), `FilePicker.pickFiles()` (multiple)
@@ -121,40 +135,36 @@ mipdf/
 MaterialApp (KawaiiPdfApp)
 └── HomeScreen (Scaffold)
     ├── AppBar (gradient bg, "🌸 kawaii pdf 🌸")
+    ├── FAB: 📖 PDF Reader
     ├── Body: Gradient bg (cream→pink50)
     │   ├── Headline: "✨ Herramientas PDF"
     │   ├── Subtitle
-    │   └── GridView 2-col (6 _KawaiiToolCards)
+    │   └── GridView 2-col (10 _KawaiiToolCards - V2 bubble style)
     │       ├── Crear PDF → CreatePdfScreen
     │       ├── Unir PDFs → MergePdfScreen
     │       ├── Dividir PDF → SplitPdfScreen
     │       ├── Desbloquear → UnlockPdfScreen
+    │       ├── Marca de agua → EditPdfScreen (watermark mode)
+    │       ├── Proteger PDF → EditPdfScreen (protect mode)
     │       ├── Modificar → EditPdfScreen (text mode)
-    │       └── Marca/Proteger → EditPdfScreen (watermark/protect)
-    └── Each feature screen: Scaffold + AppBar + SingleChildScrollView
+    │       ├── Convertir PDF → ConvertPdfScreen
+    │       ├── Escanear PDF → ScanPdfScreen  ← NEW
+    │       └── Mis Archivos → FilesScreen      ← NEW
+    └── Each feature screen: Scaffold + AppBar + body
 ```
 
 ## Features
 
-### 7. PDF Reader (`PdfReaderScreen`) — NEW
-- Full-screen PDF viewer with `syncfusion_flutter_pdfviewer`
-- File picker integration (`FilePicker.pickFiles`)
-- Double-tap zoom, text selection, scroll indicators
-- Pagination dialog, scroll head
-- Fullscreen mode (hides AppBar, black background)
-- FAB-based access from HomeScreen (📖 `menu_book_rounded` icon)
-- Error handling with retry button
-- Supports opening from external file path
-
 ### 1. Home Screen (`HomeScreen`)
 - Gradient AppBar with emoji decoration
-- 2-column GridView with 6 kawaii-styled tool cards
-- Cards have gradient icon containers, shadows, ink splash effects
+- 2-column GridView with **10 kawaii-styled tool cards** (V2 bubble style)
+- FloatingActionButton for quick access to PDF Reader
+- Cards have circular icon bubbles with glow shadows
 
 ### 2. Create PDF (`CreatePdfScreen`)
 - Title + Content text fields
 - Font formatting: family (Helvetica/Courier/Times), size slider (8-24), bold/italic toggles
-- Import content: from URL (http GET, strips HTML) or from .txt file
+- Import content: from URL (http GET, strips HTML), from .txt file, or from Office files (.docx, .xlsx, .pptx)
 - Output PDF with header, separator line, and footer "Creado con kawaii pdf"
 
 ### 3. Merge PDFs (`MergePdfScreen`)
@@ -174,6 +184,36 @@ MaterialApp (KawaiiPdfApp)
 - **Protect**: Password → encrypts with `userPassword` + `ownerPassword`
 - **Text**: Auto-extracts on file pick, editable text → whites out original, draws new text
 
+### 7. Convert PDF (`ConvertPdfScreen`)
+- Export PDF to Word (.docx), Excel (.xlsx), PowerPoint (.pptx), TXT
+- Text-based conversion (plain text extraction)
+- Uses `archive` + `xml` packages for Office XML generation
+
+### 8. Scan PDF (`ScanPdfScreen`)
+- Camera capture via `image_picker` (ImageSource.camera)
+- Gallery import as fallback
+- Optional title before converting to PDF
+- `PdfBitmap` + `page.graphics.drawImage()` for PDF generation
+- Auto-scales image to fit page preserving aspect ratio
+- Saved to unified `kawaii_pdf/` directory
+- Share button after creation
+
+### 9. File Manager (`FilesScreen`)
+- Lists all files from unified `kawaii_pdf/` directory
+- **Search bar**: filter by filename in real-time
+- **Filter chips**: All, PDF, Word, Excel, PPT, TXT
+- **Sort options**: Most recent, oldest, name A-Z, name Z-A, size
+- **File cards**: icon bubble (format-colored), name, date, size, format badge
+- **Actions**: tap to open PDF, tap to share others, long-press to delete (with confirmation)
+- **Empty state**: folder icon bubble with friendly message
+- Pull-to-refresh
+
+### 10. PDF Reader (`PdfReaderScreen`)
+- Full-screen PDF viewer using `SfPdfViewer`
+- Zoom and pan gestures
+- Immersive mode with minimal UI
+- Open from File Manager or FAB on Home Screen
+
 ## Key Coding Patterns
 1. **Imports**: `import 'package:flutter/material.dart'` for all UI
 2. **Widgets**: `const` where possible; `StatefulWidget` + `createState()`
@@ -183,7 +223,7 @@ MaterialApp (KawaiiPdfApp)
 6. **Error display**: Coral container with error message
 7. **Success display**: Mint container + check icon + share button
 8. **UI**: Rounded corners (12-24px), pill buttons (radius 999), kawaii shadows
-9. **File handling**: Save to `getApplicationDocumentsDirectory()`, share via `SharePlus`
+9. **File handling**: Save to `getApplicationDocumentsDirectory()/kawaii_pdf/`, share via `SharePlus`
 
 ## Testing
 - **Framework**: `flutter_test`
@@ -210,7 +250,9 @@ MaterialApp (KawaiiPdfApp)
 - ✅ Linux
 
 ## Assets
-- `asset/imagenes/easyeditor.png` — App launcher icon (via `flutter_launcher_icons`)
+- `asset/imagenes/easyeditor.png` — App launcher icon original
+- `asset/imagenes/kawaiipdf.jpg` — Logo kawaii pdf
+- `asset/imagenes/kawaiipdf1.png` — App launcher icon actual (usado por flutter_launcher_icons)
 
 ## Linting & Code Quality
 - `flutter_lints` v6.0.0 (recommended Flutter lint set)
@@ -226,15 +268,21 @@ MaterialApp (KawaiiPdfApp)
 6. **URL import**: Uses `http` package; strips HTML via regex; UTF-8 decoding
 
 ## Recent Changes
-- 2026-11-25: Added PDF Reader feature (full-screen viewer, zoom, fullscreen mode) via FAB
-- 2026-11-24: Project initialized (Flutter counter app)
-- 2026-11-24: Memory bank v1 created
-- 2026-11-25: **Major update** — Full project migration:
-  - Renamed `mipdf` → `kawaii_pdf`
-  - Switched `material_ui` → standard `flutter/material`
-  - Implemented complete Feature-First architecture (6 tools)
-  - Added kawaii theme system (AppTheme with colors, shadows, gradients)
-  - PDF service expanded: text extraction, text modification, configurable watermark, font options
-  - Added `http` for URL import, `flutter_launcher_icons` for app icon
-  - Counter app replaced with full PDF tools suite
-  - Tests updated for new home screen
+- 2026-11-26: **Importación Office (DOCX, XLSX, PPTX)** update:
+  - `PdfService` extendido con `extractTextFromDocx()`, `extractTextFromXlsx()`, `extractTextFromPptx()`
+  - `OfficeTemplates` añadido con templates XML completos para DOCX, XLSX, PPTX
+  - Exportación PDF → Office: `exportPdfToDocx()`, `exportPdfToXlsx()`, `exportPdfToPptx()`, `exportPdfToTxt()`
+  - `CreatePdfScreen` ahora soporta importar desde archivos Word (.docx), Excel (.xlsx), PowerPoint (.pptx)
+  - Nuevos assets: `kawaiipdf.jpg`, `kawaiipdf1.png` como icono de la app
+- 2026-11-25: **Kawaii V2 + Scan + File Manager** update:
+  - Theme upgraded to Kawaii V2: new bubble colors, glow shadows, warm cream (#FDF9EE)
+  - Icon containers now use circles with glow effect (bubble style)
+  - Cards now use `softShadow` + `bubbleGlow()` instead of old gradients
+  - Added `image_picker` dependency for camera capture
+  - New ScanPdfScreen: camera/gallery → PDF conversion
+  - New FilesScreen: unified file manager with search, filters, sort, delete
+  - All file operations now save to unified `kawaii_pdf/` directory
+  - PdfService extended: `getAppDirectory()`, `createPdfFromImage()`, `listAppFiles()`, `deleteAppFile()`
+  - HomeScreen now has 10 tool cards + FAB for reader
+  - Version bumped to 1.1.1+4
+  - APK release: 66.4 MB, AAB release: 48.7 MB

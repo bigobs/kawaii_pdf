@@ -9,9 +9,24 @@ import 'package:flutter/material.dart';
 class AppTheme {
   AppTheme._();
 
-  // ── Neutros cálidos ──────────────────────────────────────────────
-  static const Color cream = Color(0xFFFFF9F7);
+  // ── Neutros cálidos (Kawaii V2) ─────────────────────────────────
+  static const Color cream = Color(0xFFFDF9EE);   // fondo principal más cálido
   static const Color blush = Color(0xFFFFEFF3);
+  static const Color white = Color(0xFFFFFFFF);    // tarjetas flotantes
+
+  // ── Bubble containers (V2) ──────────────────────────────────────
+  static const Color bubblePink = Color(0xFFFFE4EB);
+  static const Color bubblePinkDark = Color(0xFFFF7BA9);
+  static const Color bubbleBlue = Color(0xFFE1F4F9);
+  static const Color bubbleBlueDark = Color(0xFF6ED0E8);
+  static const Color bubbleYellow = Color(0xFFFFF9D2);
+  static const Color bubbleYellowDark = Color(0xFFF2D45C);
+  static const Color bubbleCoral = Color(0xFFFFE5E5);
+  static const Color bubbleCoralDark = Color(0xFFF76B6B);
+  static const Color bubbleLavender = Color(0xFFEDE4FF);
+  static const Color bubbleLavenderDark = Color(0xFFB39DDB);
+  static const Color bubbleMint = Color(0xFFE0F7EF);
+  static const Color bubbleMintDark = Color(0xFF66BB9A);
 
   // ── Escala rosa ──────────────────────────────────────────────────
   static const Color pink50 = Color(0xFFFFF0F5);
@@ -43,18 +58,36 @@ class AppTheme {
   /// Sombra kawaii estándar para cards.
   static List<BoxShadow> get kawaiiShadow => [
         BoxShadow(
-          color: const Color(0xFFFF6B9D).withValues(alpha: 0.18),
-          blurRadius: 16,
-          offset: const Offset(0, 6),
+          color: const Color(0xFFFF6B9D).withValues(alpha: 0.12),
+          blurRadius: 24,
+          offset: const Offset(0, 8),
         ),
       ];
 
   /// Sombra kawaii sutil para botones.
   static List<BoxShadow> get kawaiiShadowLight => [
         BoxShadow(
-          color: const Color(0xFFFF6B9D).withValues(alpha: 0.12),
-          blurRadius: 10,
+          color: const Color(0xFFFF6B9D).withValues(alpha: 0.08),
+          blurRadius: 12,
           offset: const Offset(0, 4),
+        ),
+      ];
+
+  /// Sombra glow para burbujas de icono (V2).
+  static List<BoxShadow> bubbleGlow(Color c) => [
+        BoxShadow(
+          color: c.withValues(alpha: 0.35),
+          blurRadius: 12,
+          offset: const Offset(0, 3),
+        ),
+      ];
+
+  /// Sombra difusa estilo kawaii v2.
+  static List<BoxShadow> get softShadow => [
+        BoxShadow(
+          color: const Color(0xFFC8B4B4).withValues(alpha: 0.12),
+          blurRadius: 20,
+          offset: const Offset(0, 8),
         ),
       ];
 

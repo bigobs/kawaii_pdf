@@ -7,6 +7,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 import 'package:xml/xml.dart';
 
+import 'office_templates.dart';
+
 /// Servicio central para operaciones de manipulacion de PDFs.
 class PdfService {
   // ---------------------------------------------------------------------------
@@ -502,9 +504,154 @@ class PdfService {
     return buffer.toString().trimRight();
   }
 
+  /// Extrae texto de un archivo .pptx.
+  Future<String> extractTextFromPptx(File file) async {
+    final bytes = await file.readAsBytes();
+    final archive = ZipDecoder().decodeBytes(bytes);
+
+    final slideNames = <String>[];
+    for (final f in archive.files) {
+      final n = f.name;
+      if (n.startsWith('ppt/slides/slide') && n.endsWith('.xml')) {
+        slideNames.add(n);
+      }
+    }
+    slideNames.sort();
+
+    final buffer = StringBuffer();
+    int slideNum = 0;
+    for (final name in slideNames) {
+      slideNum++;
+      final archiveFile = archive.files.firstWhere((f) => f.name == name);
+      final xmlStr = utf8.decode(archiveFile.content as List<int>);
+      final doc = XmlDocument.parse(xmlStr);
+      final texts = <String>[];
+      for (final e in doc.descendants.whereType<XmlElement>()) {
+        if (e.name.local == 't' &&
+            (e.name.namespaceUri?.contains('drawingml') ?? false)) {
+          texts.add(e.innerText);
+        }
+      }
+      if (texts.isNotEmpty) {
+        if (slideNum > 1) buffer.writeln();
+        buffer.writeln('--- Diapositiva $slideNum ---');
+        buffer.write(texts.join(' '));
+      }
+    }
+    return buffer.toString().trimRight();
+  }
+
   // ---------------------------------------------------------------------------
-  // Utilidades
+  // Export: PDF → Office / TXT
   // ---------------------------------------------------------------------------
+
+  /// Exporta el texto del PDF a un .docx mínimo.
+  Future<File> exportPdfToDocx(File pdfFile, {String? baseName}) async {
+    final text = await extractText(pdfFile);
+    final name = baseName ?? 'export_${DateTime.now().millisecondsSinceEpoch}';
+    final encoder = ZipEncoder();
+    final archive = Archive();
+    _addString(archive, '[Content_Types].xml', OfficeTemplates.docxCt);
+    _addString(archive, '_rels/.rels', OfficeTemplates.docxRels);
+    _addString(archive, 'word/_rels/document.xml.rels', OfficeTemplates.docxDocRels);
+    _addString(archive, 'word/document.xml', OfficeTemplates.docxDoc(escapeXml(text)));
+    final zipBytes = encoder.encode(archive);
+    return _saveToFile(zipBytes, '${_sanitizeFileName(name)}.docx');
+  }
+
+  /// Exporta el texto del PDF a un .xlsx mínimo.
+  Future<File> exportPdfToXlsx(File pdfFile, {String? baseName}) async {
+    final text = await extractText(pdfFile);
+    final name = baseName ?? 'export_${DateTime.now().millisecondsSinceEpoch}';
+    final lines = _sanitizeSheetText(text.split('\n'));
+    final encoder = ZipEncoder();
+    final archive = Archive();
+    _addString(archive, '[Content_Types].xml', OfficeTemplates.xlsxCt);
+    _addString(archive, '_rels/.rels', OfficeTemplates.xlsxRels);
+    _addString(archive, 'xl/_rels/workbook.xml.rels', OfficeTemplates.xlsxWbRels);
+    _addString(archive, 'xl/workbook.xml', OfficeTemplates.xlsxWb);
+    _addString(archive, 'xl/worksheets/sheet1.xml', OfficeTemplates.xlsxSheet(lines, _colName));
+    _addString(archive, 'xl/sharedStrings.xml', OfficeTemplates.xlsxSs(lines));
+    final zipBytes = encoder.encode(archive);
+    return _saveToFile(zipBytes, '${_sanitizeFileName(name)}.xlsx');
+  }
+
+  /// Exporta el texto del PDF a un archivo .txt.
+  Future<File> exportPdfToTxt(File pdfFile, {String? baseName}) async {
+    final text = await extractText(pdfFile);
+    final name = baseName ?? 'export_${DateTime.now().millisecondsSinceEpoch}';
+    return _saveToFile(utf8.encode(text), '${_sanitizeFileName(name)}.txt');
+  }
+
+  /// Exporta el PDF a .pptx (una diapositiva por página).
+  Future<File> exportPdfToPptx(File pdfFile, {String? baseName}) async {
+    final pages = await _extractTextPerPage(pdfFile);
+    final name = baseName ?? 'export_${DateTime.now().millisecondsSinceEpoch}';
+    final encoder = ZipEncoder();
+    final archive = Archive();
+    _addString(archive, '[Content_Types].xml', OfficeTemplates.pptxCt);
+    _addString(archive, '_rels/.rels', OfficeTemplates.pptxRels);
+    _addString(archive, 'ppt/_rels/presentation.xml.rels', OfficeTemplates.pptxPresRels);
+    _addString(archive, 'ppt/presentation.xml', OfficeTemplates.pptxPres);
+    _addString(archive, 'ppt/presProps.xml', OfficeTemplates.pptxPresPr);
+    _addString(archive, 'ppt/tableStyles.xml', OfficeTemplates.pptxTblSt);
+    _addString(archive, 'ppt/slideMasters/slideMaster1.xml', OfficeTemplates.pptxSM);
+    _addString(archive, 'ppt/slideMasters/_rels/slideMaster1.xml.rels', OfficeTemplates.pptxSMRels);
+    _addString(archive, 'ppt/slideLayouts/slideLayout1.xml', OfficeTemplates.pptxLayout);
+    _addString(archive, 'ppt/slideLayouts/_rels/slideLayout1.xml.rels', OfficeTemplates.pptxLayoutRels);
+    _addString(archive, 'ppt/theme/theme1.xml', OfficeTemplates.pptxTheme);
+    for (int i = 0; i < pages.length; i++) {
+      _addString(archive, 'ppt/slides/slide${i + 1}.xml',
+          OfficeTemplates.pptxSlide(i + 1, pages[i]));
+      _addString(archive, 'ppt/slides/_rels/slide${i + 1}.xml.rels', OfficeTemplates.pptxSlideRels);
+    }
+    final zipBytes = encoder.encode(archive);
+    return _saveToFile(zipBytes, '${_sanitizeFileName(name)}.pptx');
+  }
+
+  /// Extrae texto página por página.
+  Future<List<String>> _extractTextPerPage(File file) async {
+    final bytes = await file.readAsBytes();
+    final document = PdfDocument(inputBytes: bytes);
+    final extractor = PdfTextExtractor(document);
+    final pages = <String>[];
+    for (int i = 0; i < document.pages.count; i++) {
+      pages.add(extractor.extractText(startPageIndex: i));
+    }
+    document.dispose();
+    return pages;
+  }
+
+  void _addString(Archive archive, String path, String content) {
+    final bytes = utf8.encode(content);
+    archive.addFile(ArchiveFile(path, bytes.length, bytes));
+  }
+
+  /// Escapa caracteres XML.
+  static String escapeXml(String s) {
+    return s
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&apos;');
+  }
+
+  static List<String> _sanitizeSheetText(List<String> lines) {
+    return lines.map((l) {
+      return l.replaceAll(RegExp(r'[\x00-\x08\x0B\x0C\x0E-\x1F]'), '');
+    }).toList();
+  }
+
+  static String _colName(int i) {
+    final buf = StringBuffer();
+    int n = i;
+    while (n >= 0) {
+      buf.writeCharCode(65 + (n % 26));
+      n = n ~/ 26 - 1;
+    }
+    return buf.toString().split('').reversed.join();
+  }
 
   Future<int> getPageCount(File file) async {
     final bytes = await file.readAsBytes();
@@ -514,11 +661,91 @@ class PdfService {
     return count;
   }
 
-  Future<File> _saveToFile(List<int> bytes, String fileName) async {
+  /// Directorio unificado de la app para todos los archivos generados.
+  Future<Directory> getAppDirectory() async {
     final dir = await getApplicationDocumentsDirectory();
-    final file = File('${dir.path}/$fileName');
+    final appDir = Directory('${dir.path}/kawaii_pdf');
+    if (!await appDir.exists()) await appDir.create(recursive: true);
+    return appDir;
+  }
+
+  Future<File> _saveToFile(List<int> bytes, String fileName) async {
+    final appDir = await getAppDirectory();
+    final file = File('${appDir.path}/$fileName');
     await file.writeAsBytes(bytes);
     return file;
+  }
+
+
+  // ---------------------------------------------------------------------------
+  // Escanear — crear PDF desde imagen (cámara)
+  // ---------------------------------------------------------------------------
+
+  Future<File> createPdfFromImage(File imageFile, {String? title}) async {
+    final bytes = await imageFile.readAsBytes();
+    final image = PdfBitmap(bytes);
+
+    final document = PdfDocument();
+    document.documentInformation.title = title ?? 'Documento escaneado';
+    document.documentInformation.creator = 'kawaii pdf';
+
+    final page = document.pages.add();
+    final size = page.getClientSize();
+
+    final imgW = image.width.toDouble();
+    final imgH = image.height.toDouble();
+    final scale = (size.width / imgW).clamp(0.0, (size.height / imgH));
+    final w = imgW * scale;
+    final h = imgH * scale;
+    final x = (size.width - w) / 2;
+    final y = (size.height - h) / 2;
+
+    page.graphics.drawImage(image, Rect.fromLTWH(x, y, w, h));
+
+    final out = await _saveToFile(
+      await document.save(),
+      'scan_${DateTime.now().millisecondsSinceEpoch}.pdf',
+    );
+    document.dispose();
+    return out;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Gestor de archivos
+  // ---------------------------------------------------------------------------
+
+  Future<List<File>> listAppFiles({String? filter, String? sortBy}) async {
+    final appDir = await getAppDirectory();
+    final all = await appDir.list().toList();
+    var files = all.whereType<File>().toList();
+
+    if (filter != null && filter.isNotEmpty) {
+      final q = filter.toLowerCase();
+      files = files.where((f) {
+        final name = f.path.split('/').last.toLowerCase();
+        return name.contains(q);
+      }).toList();
+    }
+
+    sortBy ??= 'date_desc';
+    switch (sortBy) {
+      case 'name_asc':
+        files.sort((a, b) => a.path.compareTo(b.path));
+      case 'name_desc':
+        files.sort((a, b) => b.path.compareTo(a.path));
+      case 'date_asc':
+        files.sort((a, b) => a.lastModifiedSync().compareTo(b.lastModifiedSync()));
+      case 'size':
+        files.sort((a, b) => b.lengthSync().compareTo(a.lengthSync()));
+      default:
+        files.sort((a, b) => b.lastModifiedSync().compareTo(a.lastModifiedSync()));
+    }
+
+    return files;
+  }
+
+  Future<void> deleteAppFile(File file) async {
+    if (await file.exists()) await file.delete();
   }
 
   String _sanitizeFileName(String name) {
